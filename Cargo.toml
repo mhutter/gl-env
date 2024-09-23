@@ -1,0 +1,22 @@
+[package]
+name = "gl-env"
+version = "0.1.0"
+edition = "2021"
+authors = ["Manuel Hutter (https://github.com/mhutter)"]
+license = "MIT"
+repository = "https://github.com/mhutter/gl-env"
+
+[dependencies]
+clap = { version = "4.5.18", features = ["derive", "env"] }
+serde = { version = "1.0.210", features = ["derive"] }
+serde_yml = "0.0.12"
+thiserror = "1.0.64"
+ureq = { version = "2.10.1", features = ["json"] }
+url = "2.5.2"
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = "z"
