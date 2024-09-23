@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +30,7 @@ pub struct State {
 
 /// A map of variables, indexed by their key
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Variables(HashMap<VariableKey, VariableValue>);
+pub struct Variables(BTreeMap<VariableKey, VariableValue>);
 
 impl From<Vec<gitlab::Variable>> for Variables {
     fn from(value: Vec<gitlab::Variable>) -> Self {
@@ -48,7 +48,7 @@ impl From<Vec<gitlab::Variable>> for Variables {
 /// Can only contain letters, numbers, and '_'.
 ///
 /// TODO: validate this ^
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct VariableKey(String);
 
 /// The value of a variable.
