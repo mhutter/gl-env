@@ -23,8 +23,6 @@ fn main() {
 /// Fetch all currently configured variables, and dump them in YAML format to STDOUT
 fn dump(gitlab: Gitlab, project: &str) {
     let vars = gitlab.list_project_variables(project).unwrap();
-    let state = State {
-        variables: vars.into(),
-    };
+    let state = State::from(vars);
     serde_yml::to_writer(std::io::stdout(), &state).expect("Serialize data");
 }

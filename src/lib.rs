@@ -23,25 +23,44 @@ pub const APP_UA: &str = concat!(
 );
 
 /// Format of the YAML input/output
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct State {
+    /// Variables with no specific environment scope (`*`)
     pub variables: Variables,
+
+    /// Variables belonging to a specific environment scope
+    pub environments: BTreeMap<Environment, Variables>,
 }
 
-/// A map of variables, indexed by their key
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Variables(BTreeMap<VariableKey, VariableValue>);
+impl From<Vec<gitlab::Variable>> for State {
+    fn from(variables: Vec<gitlab::Variable>) -> Self {
+        let mut s = Self::default();
+        for v in variables {
+            let key = VariableKey(v.key.clone());
+            let value = VariableValue::from(v);
 
-impl From<Vec<gitlab::Variable>> for Variables {
-    fn from(value: Vec<gitlab::Variable>) -> Self {
-        Self(
-            value
-                .into_iter()
-                .map(|v| (VariableKey(v.key.clone()), VariableValue::from(v)))
-                .collect(),
-        )
+            match value.environment.as_str() {
+                "*" => {
+                    s.variables.0.insert(key, value);
+                }
+                _ => {
+                    s.environments
+                        .entry(value.environment.clone())
+                        .or_default()
+                        .0
+                        .insert(key, value);
+                }
+            }
+        }
+        s
     }
 }
+
+/// A map of variables, indexed by their key.
+///
+/// Must be a map such that is impossible to set the same variable twice.
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Variables(BTreeMap<VariableKey, VariableValue>);
 
 /// Key of a variable
 ///
@@ -113,12 +132,16 @@ impl From<gitlab::Variable> for VariableValue {
 }
 
 /// Environment scope of a variable
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Environment(String);
 
 impl Environment {
     pub fn is_default(&self) -> bool {
         self.0 == "*"
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
     }
 }
 
