@@ -21,7 +21,7 @@ pub struct Gitlab {
 }
 
 impl Gitlab {
-    pub fn new(url: Url, token: String) -> Self {
+    pub fn new(url: &Url, token: &str) -> Self {
         let agent = ureq::AgentBuilder::new()
             .https_only(true)
             .redirects(0)
@@ -61,9 +61,9 @@ impl Gitlab {
     }
 }
 
-impl From<CommonArgs> for Gitlab {
-    fn from(args: CommonArgs) -> Self {
-        Self::new(args.url, args.token)
+impl From<&CommonArgs> for Gitlab {
+    fn from(args: &CommonArgs) -> Self {
+        Self::new(&args.url, &args.token)
     }
 }
 

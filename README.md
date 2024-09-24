@@ -62,12 +62,13 @@ environment:
 
 ## Backlog
 
-- [ ] diff
+- [x] diff
 - [ ] apply
 - [x] Support identically-named variables in different environments
 - [x] Ensure output order of variables is stable
 - [ ] Non-ugly error messages
 - [ ] String-or-struct for variables (?)
+- [ ] Support group-level variables or instance-level variables
 
 ## License
 

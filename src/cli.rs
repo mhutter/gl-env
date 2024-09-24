@@ -24,7 +24,7 @@ pub enum Commands {
     /// Apply desired variables
     Update {
         #[clap(flatten)]
-        common: CommonArgs,
+        args: CommonArgs,
 
         /// Print what WOULD been done, but don't actually do it
         #[arg(short, long)]

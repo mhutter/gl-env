@@ -29,26 +29,23 @@ pub struct State {
     pub variables: Variables,
 
     /// Variables belonging to a specific environment scope
-    pub environments: BTreeMap<Environment, Variables>,
+    pub environments: BTreeMap<String, Variables>,
 }
 
 impl From<Vec<gitlab::Variable>> for State {
     fn from(variables: Vec<gitlab::Variable>) -> Self {
         let mut s = Self::default();
         for v in variables {
+            let env = v.environment_scope.clone();
             let key = VariableKey(v.key.clone());
             let value = VariableValue::from(v);
 
-            match value.environment.as_str() {
+            match env.as_str() {
                 "*" => {
                     s.variables.0.insert(key, value);
                 }
                 _ => {
-                    s.environments
-                        .entry(value.environment.clone())
-                        .or_default()
-                        .0
-                        .insert(key, value);
+                    s.environments.entry(env).or_default().0.insert(key, value);
                 }
             }
         }
@@ -59,7 +56,7 @@ impl From<Vec<gitlab::Variable>> for State {
 /// A map of variables, indexed by their key.
 ///
 /// Must be a map such that is impossible to set the same variable twice.
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Variables(BTreeMap<VariableKey, VariableValue>);
 
 /// Key of a variable
@@ -67,11 +64,11 @@ pub struct Variables(BTreeMap<VariableKey, VariableValue>);
 /// Can only contain letters, numbers, and '_'.
 ///
 /// TODO: validate this ^
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct VariableKey(String);
 
 /// The value of a variable.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct VariableValue {
     /// The actual value
     ///
@@ -87,22 +84,23 @@ pub struct VariableValue {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
-    #[serde(skip_serializing_if = "Environment::is_default")]
-    pub environment: Environment,
-
     /// Whether the value should be filtered in job logs.
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub masked: bool,
 
     /// Export variable to pipelines running on protected branches and tags only.
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub protected: bool,
 
     /// If `false`, `$` will be treated as the start of a reference to another variable.
-    #[serde(skip_serializing_if = "is_false")]
+    #[serde(default, skip_serializing_if = "is_false")]
     pub raw: bool,
 
-    #[serde(rename = "type", skip_serializing_if = "VariableType::is_default")]
+    #[serde(
+        rename = "type",
+        default,
+        skip_serializing_if = "VariableType::is_default"
+    )]
     pub variable_type: VariableType,
 }
 
@@ -112,7 +110,7 @@ impl From<gitlab::Variable> for VariableValue {
             key: _,
             value,
             description,
-            environment_scope,
+            environment_scope: _,
             masked,
             protected,
             raw,
@@ -122,38 +120,11 @@ impl From<gitlab::Variable> for VariableValue {
         Self {
             value,
             description,
-            environment: environment_scope.into(),
             masked,
             protected,
             raw,
             variable_type,
         }
-    }
-}
-
-/// Environment scope of a variable
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Environment(String);
-
-impl Environment {
-    pub fn is_default(&self) -> bool {
-        self.0 == "*"
-    }
-
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl From<String> for Environment {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl Default for Environment {
-    fn default() -> Self {
-        Self(String::from("*"))
     }
 }
 
