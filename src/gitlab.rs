@@ -2,6 +2,7 @@
 
 use std::{io, time::Duration};
 
+use serde::Serialize;
 use url::Url;
 
 use crate::{cli::CommonArgs, APP_UA};
@@ -43,17 +44,8 @@ impl Gitlab {
     /// List all available project variables
     pub fn list_project_variables(&self, project: &str) -> FetchResult<Vec<Variable>> {
         let project_id = project.replace('/', "%2F");
-        let url = self
-            .url
-            .join(&format!("projects/{project_id}/variables"))
-            .expect("projects URL");
-
-        self.agent
-            .get(url.as_str())
-            .set("Authorization", &self.auth_header)
-            .call()?
-            .into_json()
-            .map_err(FetchError::from)
+        let url = self.url.join(&format!("projects/{project_id}/variables"))?;
+        self.get(&url)?.into_json().map_err(FetchError::from)
     }
 
     /// Create a new variable.
@@ -66,16 +58,8 @@ impl Gitlab {
         project: &str,
         variable: &Variable,
     ) -> FetchResult<Variable> {
-        let project_id = project.replace('/', "%2F");
-        let url = self
-            .url
-            .join(&format!("projects/{project_id}/variables"))
-            .expect("projects URL");
-
-        self.agent
-            .post(url.as_str())
-            .set("Authorization", &self.auth_header)
-            .send_json(variable)?
+        let url = self.url_for_project_variable(project, variable)?;
+        self.post(&url, variable)?
             .into_json()
             .map_err(FetchError::from)
     }
@@ -86,42 +70,67 @@ impl Gitlab {
         project: &str,
         variable: &Variable,
     ) -> FetchResult<Variable> {
-        let project_id = project.replace('/', "%2F");
-        let key = variable.key.as_str();
-        let mut url = self
-            .url
-            .join(&format!("projects/{project_id}/variables/{key}"))
-            .expect("projects URL");
-
-        url.query_pairs_mut()
-            .append_pair("filter[environment_scope]", &variable.environment_scope);
-
-        self.agent
-            .put(url.as_str())
-            .set("Authorization", &self.auth_header)
-            .send_json(variable)?
+        let url = self.url_for_project_variable(project, variable)?;
+        self.put(&url, variable)?
             .into_json()
             .map_err(FetchError::from)
     }
 
     /// Delete a project's variable
     pub fn delete_project_variable(&self, project: &str, variable: &Variable) -> FetchResult<()> {
+        let url = self.url_for_project_variable(project, variable)?;
+        self.delete(&url)?;
+        Ok(())
+    }
+
+    /// Perform an authenticated GET request
+    fn get(&self, url: &Url) -> FetchResult<ureq::Response> {
+        self.agent
+            .get(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .call()
+            .map_err(FetchError::from)
+    }
+
+    /// Perform an authenticated POST request
+    fn post<T: Serialize>(&self, url: &Url, body: T) -> FetchResult<ureq::Response> {
+        self.agent
+            .post(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .send_json(body)
+            .map_err(FetchError::from)
+    }
+
+    /// Perform an authenticated PUT request
+    fn put<T: Serialize>(&self, url: &Url, body: T) -> FetchResult<ureq::Response> {
+        self.agent
+            .put(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .send_json(body)
+            .map_err(FetchError::from)
+    }
+
+    /// Perform an authenticated DELETE request
+    fn delete(&self, url: &Url) -> FetchResult<ureq::Response> {
+        self.agent
+            .delete(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .call()
+            .map_err(FetchError::from)
+    }
+
+    /// Construct the absolute URL for a project variable
+    fn url_for_project_variable(&self, project: &str, variable: &Variable) -> FetchResult<Url> {
+        // technically the whole project ID must be urlencoded, but in practice only the slash
+        // needs replacing
         let project_id = project.replace('/', "%2F");
         let key = variable.key.as_str();
         let mut url = self
             .url
-            .join(&format!("projects/{project_id}/variables/{key}"))
-            .expect("projects URL");
-
+            .join(&format!("projects/{project_id}/variables/{key}"))?;
         url.query_pairs_mut()
             .append_pair("filter[environment_scope]", &variable.environment_scope);
-
-        self.agent
-            .delete(url.as_str())
-            .set("Authorization", &self.auth_header)
-            .call()?;
-
-        Ok(())
+        Ok(url)
     }
 }
 
@@ -134,6 +143,9 @@ impl From<&CommonArgs> for Gitlab {
 /// Errors that might occur when performing requests to the GitLab API.
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
+    #[error("Invalid URL: {0}")]
+    Url(#[from] url::ParseError),
+
     #[error("Failed to send request: {0}")]
     RequestFailed(#[source] ureq::Transport),
 
