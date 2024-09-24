@@ -26,15 +26,19 @@ fn main() {
             let gitlab = Gitlab::from(&args);
             dump(&gitlab, &args.project);
         }
-        Commands::Apply { args, dry_run } => {
+        Commands::Apply {
+            args,
+            dry_run,
+            prune,
+        } => {
             let gitlab = Gitlab::from(&args);
-            apply(&gitlab, &args.project, dry_run);
+            apply(&gitlab, &args.project, prune, dry_run);
         }
     }
 }
 
 /// Apply all variables
-fn apply(gitlab: &Gitlab, project: &str, dry_run: bool) {
+fn apply(gitlab: &Gitlab, project: &str, prune: bool, dry_run: bool) {
     if dry_run {
         println!("Running in DRY RUN MODE");
     }
@@ -72,8 +76,15 @@ fn apply(gitlab: &Gitlab, project: &str, dry_run: bool) {
         }
     }
 
-    for variable in actual {
-        println!("{RED}{variable} exists in GitLab, but not in desired state.{RESET}");
+    if prune {
+        for variable in actual {
+            gitlab.delete_project_variable(project, &variable).unwrap();
+            println!("{RED}{variable} deleted{RESET}");
+        }
+    } else {
+        for variable in actual {
+            println!("{RED}{variable} exists in GitLab, but not in desired state.{RESET}");
+        }
     }
 }
 

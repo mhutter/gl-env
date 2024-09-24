@@ -29,6 +29,10 @@ pub enum Commands {
         /// Print what WOULD been done, but don't actually do it
         #[arg(short, long)]
         dry_run: bool,
+
+        /// Remove variables not present in desired state
+        #[arg(short, long)]
+        prune: bool,
     },
 }
 

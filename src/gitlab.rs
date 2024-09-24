@@ -103,6 +103,26 @@ impl Gitlab {
             .into_json()
             .map_err(FetchError::from)
     }
+
+    /// Delete a project's variable
+    pub fn delete_project_variable(&self, project: &str, variable: &Variable) -> FetchResult<()> {
+        let project_id = project.replace('/', "%2F");
+        let key = variable.key.as_str();
+        let mut url = self
+            .url
+            .join(&format!("projects/{project_id}/variables/{key}"))
+            .expect("projects URL");
+
+        url.query_pairs_mut()
+            .append_pair("filter[environment_scope]", &variable.environment_scope);
+
+        self.agent
+            .delete(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .call()?;
+
+        Ok(())
+    }
 }
 
 impl From<&CommonArgs> for Gitlab {
