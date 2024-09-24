@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use gitlab::VariableType;
+use gitlab::{Variable, VariableType};
 
 pub mod cli;
 pub mod gitlab;
@@ -22,14 +22,58 @@ pub const APP_UA: &str = concat!(
     ")",
 );
 
+/// A map of variables, indexed by their key.
+///
+/// Must be a map such that is impossible to set the same variable twice.
+pub type Variables = BTreeMap<VariableKey, VariableValue>;
+
 /// Format of the YAML input/output
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct State {
+    /// Default attributes to be applied to all variables
+    #[serde(default)]
+    pub defaults: Settings,
+
     /// Variables with no specific environment scope (`*`)
     pub variables: Variables,
 
     /// Variables belonging to a specific environment scope
     pub environments: BTreeMap<String, Variables>,
+}
+
+/// Variable settings
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Settings {
+    /// Whether the value should be filtered in job logs.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub masked: Option<bool>,
+
+    /// Export variable to pipelines running on protected branches and tags only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protected: Option<bool>,
+
+    /// If `false`, `$` will be treated as the start of a reference to another variable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub raw: Option<bool>,
+}
+
+impl From<State> for Vec<Variable> {
+    fn from(state: State) -> Self {
+        let mut variables = Vec::new();
+
+        for (key, v) in state.variables {
+            let var = into_variable(key.into(), String::from("*"), v, &state.defaults);
+            variables.push(var);
+        }
+
+        for (env, vars) in state.environments {
+            for (key, v) in vars {
+                let var = into_variable(key.into(), env.clone(), v, &state.defaults);
+                variables.push(var);
+            }
+        }
+        variables
+    }
 }
 
 impl From<Vec<gitlab::Variable>> for State {
@@ -53,10 +97,39 @@ impl From<Vec<gitlab::Variable>> for State {
     }
 }
 
-/// A map of variables, indexed by their key.
-///
-/// Must be a map such that is impossible to set the same variable twice.
-pub type Variables = BTreeMap<VariableKey, VariableValue>;
+fn into_variable(
+    key: String,
+    environment_scope: String,
+    value: VariableValue,
+    defaults: &Settings,
+) -> Variable {
+    let VariableValue {
+        value,
+        description,
+        settings: Settings {
+            masked,
+            protected,
+            raw,
+        },
+        variable_type,
+    } = value;
+
+    // Apply custom or GitLab defaults
+    let masked = masked.unwrap_or(defaults.masked.unwrap_or(false));
+    let protected = protected.unwrap_or(defaults.protected.unwrap_or(false));
+    let raw = raw.unwrap_or(defaults.raw.unwrap_or(false));
+
+    Variable {
+        key,
+        value,
+        description,
+        environment_scope,
+        masked,
+        protected,
+        raw,
+        variable_type,
+    }
+}
 
 // impl AsRef<BTreeMap<VariableKey, VariableValue>
 
@@ -91,24 +164,15 @@ pub struct VariableValue {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
-    /// Whether the value should be filtered in job logs.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub masked: bool,
-
-    /// Export variable to pipelines running on protected branches and tags only.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub protected: bool,
-
-    /// If `false`, `$` will be treated as the start of a reference to another variable.
-    #[serde(default, skip_serializing_if = "is_false")]
-    pub raw: bool,
-
     #[serde(
         rename = "type",
         default,
         skip_serializing_if = "VariableType::is_default"
     )]
     pub variable_type: VariableType,
+
+    #[serde(flatten)]
+    pub settings: Settings,
 }
 
 impl From<gitlab::Variable> for VariableValue {
@@ -127,16 +191,12 @@ impl From<gitlab::Variable> for VariableValue {
         Self {
             value,
             description,
-            masked,
-            protected,
-            raw,
+            settings: Settings {
+                masked: Some(masked),
+                protected: Some(protected),
+                raw: Some(raw),
+            },
             variable_type,
         }
     }
-}
-
-/// Helper function for Serde's `skip_serializing_if`
-#[allow(clippy::trivially_copy_pass_by_ref)]
-const fn is_false(value: &bool) -> bool {
-    !(*value)
 }

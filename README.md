@@ -62,10 +62,11 @@ environment:
 
 ## Backlog
 
-- [ ] Default settings for all variables
 - [ ] Support group-level variables or instance-level variables
+- [ ] Remove obsolete variables
 - [ ] Non-ugly error messages
 - [ ] String-or-struct for variables (?)
+- [x] Default settings for all variables
 - [x] diff
 - [x] apply
 - [x] Support identically-named variables in different environments

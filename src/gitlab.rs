@@ -92,6 +92,7 @@ impl Gitlab {
             .url
             .join(&format!("projects/{project_id}/variables/{key}"))
             .expect("projects URL");
+
         url.query_pairs_mut()
             .append_pair("filter[environment_scope]", &variable.environment_scope);
 

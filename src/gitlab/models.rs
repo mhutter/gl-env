@@ -6,9 +6,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variable {
     pub key: String,
+    pub environment_scope: String,
     pub value: String,
     pub description: Option<String>,
-    pub environment_scope: String,
     pub masked: bool,
     pub protected: bool,
     pub raw: bool,
