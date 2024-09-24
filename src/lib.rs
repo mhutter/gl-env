@@ -42,10 +42,10 @@ impl From<Vec<gitlab::Variable>> for State {
 
             match env.as_str() {
                 "*" => {
-                    s.variables.0.insert(key, value);
+                    s.variables.insert(key, value);
                 }
                 _ => {
-                    s.environments.entry(env).or_default().0.insert(key, value);
+                    s.environments.entry(env).or_default().insert(key, value);
                 }
             }
         }
@@ -56,8 +56,9 @@ impl From<Vec<gitlab::Variable>> for State {
 /// A map of variables, indexed by their key.
 ///
 /// Must be a map such that is impossible to set the same variable twice.
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct Variables(BTreeMap<VariableKey, VariableValue>);
+pub type Variables = BTreeMap<VariableKey, VariableValue>;
+
+// impl AsRef<BTreeMap<VariableKey, VariableValue>
 
 /// Key of a variable
 ///
@@ -66,6 +67,12 @@ pub struct Variables(BTreeMap<VariableKey, VariableValue>);
 /// TODO: validate this ^
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct VariableKey(String);
+
+impl From<VariableKey> for String {
+    fn from(key: VariableKey) -> Self {
+        key.0
+    }
+}
 
 /// The value of a variable.
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

@@ -1,7 +1,9 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 /// A Project's CI/CD variables
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variable {
     pub key: String,
     pub value: String,
@@ -11,6 +13,20 @@ pub struct Variable {
     pub protected: bool,
     pub raw: bool,
     pub variable_type: VariableType,
+}
+
+impl Variable {
+    /// Determines whether two variables are "the same one", meaning their `key` and
+    /// `environment_scope` match.
+    pub fn is_same(&self, other: &Self) -> bool {
+        self.key == other.key && self.environment_scope == other.environment_scope
+    }
+}
+
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({})", self.key, self.environment_scope)
+    }
 }
 
 /// The type of a variable.

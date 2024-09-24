@@ -22,7 +22,7 @@ pub enum Commands {
     Dump(CommonArgs),
 
     /// Apply desired variables
-    Update {
+    Apply {
         #[clap(flatten)]
         args: CommonArgs,
 

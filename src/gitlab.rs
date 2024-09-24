@@ -41,8 +41,6 @@ impl Gitlab {
     }
 
     /// List all available project variables
-    ///
-    /// TODO: include variables for non-default scopes
     pub fn list_project_variables(&self, project: &str) -> FetchResult<Vec<Variable>> {
         let project_id = project.replace("/", "%2F");
         let url = self
@@ -50,14 +48,59 @@ impl Gitlab {
             .join(&format!("projects/{project_id}/variables"))
             .expect("projects URL");
 
-        let res = self
-            .agent
+        self.agent
             .get(url.as_str())
             .set("Authorization", &self.auth_header)
-            .call()?;
+            .call()?
+            .into_json()
+            .map_err(FetchError::from)
+    }
 
-        let variables = res.into_json()?;
-        Ok(variables)
+    /// Create a new variable.
+    ///
+    /// If a variable with the same key already exists, the new variable must have a different
+    /// `environment_scope`. Otherwise, GitLab returns a message similar to: `VARIABLE_NAME has
+    /// already been taken`.
+    pub fn create_project_variable(
+        &self,
+        project: &str,
+        variable: &Variable,
+    ) -> FetchResult<Variable> {
+        let project_id = project.replace("/", "%2F");
+        let url = self
+            .url
+            .join(&format!("projects/{project_id}/variables"))
+            .expect("projects URL");
+
+        self.agent
+            .post(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .send_json(variable)?
+            .into_json()
+            .map_err(FetchError::from)
+    }
+
+    /// Update a project's variable.
+    pub fn update_project_variable(
+        &self,
+        project: &str,
+        variable: &Variable,
+    ) -> FetchResult<Variable> {
+        let project_id = project.replace("/", "%2F");
+        let key = variable.key.as_str();
+        let mut url = self
+            .url
+            .join(&format!("projects/{project_id}/variables/{key}"))
+            .expect("projects URL");
+        url.query_pairs_mut()
+            .append_pair("filter[environment_scope]", &variable.environment_scope);
+
+        self.agent
+            .put(url.as_str())
+            .set("Authorization", &self.auth_header)
+            .send_json(variable)?
+            .into_json()
+            .map_err(FetchError::from)
     }
 }
 
