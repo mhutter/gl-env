@@ -43,8 +43,7 @@ impl Gitlab {
 
     /// List all available project variables
     pub fn list_project_variables(&self, project: &str) -> FetchResult<Vec<Variable>> {
-        let project_id = project.replace('/', "%2F");
-        let url = self.url.join(&format!("projects/{project_id}/variables"))?;
+        let url = self.url_for_project_variables(project)?;
         self.get(&url)?.into_json().map_err(FetchError::from)
     }
 
@@ -58,7 +57,7 @@ impl Gitlab {
         project: &str,
         variable: &Variable,
     ) -> FetchResult<Variable> {
-        let url = self.url_for_project_variable(project, variable)?;
+        let url = self.url_for_project_variables(project)?;
         self.post(&url, variable)?
             .into_json()
             .map_err(FetchError::from)
@@ -116,6 +115,16 @@ impl Gitlab {
             .delete(url.as_str())
             .set("Authorization", &self.auth_header)
             .call()
+            .map_err(FetchError::from)
+    }
+
+    /// Construct the absolute URL for a project variable
+    fn url_for_project_variables(&self, project: &str) -> FetchResult<Url> {
+        // technically the whole project ID must be urlencoded, but in practice only the slash
+        // needs replacing
+        let project_id = project.replace('/', "%2F");
+        self.url
+            .join(&format!("projects/{project_id}/variables"))
             .map_err(FetchError::from)
     }
 
