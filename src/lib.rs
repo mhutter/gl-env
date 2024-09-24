@@ -35,9 +35,11 @@ pub struct State {
     pub defaults: Settings,
 
     /// Variables with no specific environment scope (`*`)
+    #[serde(default)]
     pub variables: Variables,
 
     /// Variables belonging to a specific environment scope
+    #[serde(default)]
     pub environments: BTreeMap<String, Variables>,
 }
 
