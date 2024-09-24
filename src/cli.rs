@@ -13,7 +13,7 @@ pub struct Cli {
     pub command: Commands,
 }
 
-#[derive(Clone, Subcommand)]
+#[derive(Subcommand)]
 pub enum Commands {
     /// Show a diff between actual and desired variables
     Diff(CommonArgs),
@@ -33,7 +33,7 @@ pub enum Commands {
 }
 
 /// Arguments shared between all commands
-#[derive(Clone, Args)]
+#[derive(Args)]
 pub struct CommonArgs {
     /// Base URL of the GitLab instance.
     #[arg(

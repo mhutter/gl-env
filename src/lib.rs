@@ -65,7 +65,7 @@ pub type Variables = BTreeMap<VariableKey, VariableValue>;
 /// Can only contain letters, numbers, and '_'.
 ///
 /// TODO: validate this ^
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct VariableKey(String);
 
 impl From<VariableKey> for String {

@@ -62,13 +62,14 @@ environment:
 
 ## Backlog
 
+- [ ] Default settings for all variables
+- [ ] Support group-level variables or instance-level variables
+- [ ] Non-ugly error messages
+- [ ] String-or-struct for variables (?)
 - [x] diff
 - [x] apply
 - [x] Support identically-named variables in different environments
 - [x] Ensure output order of variables is stable
-- [ ] Non-ugly error messages
-- [ ] String-or-struct for variables (?)
-- [ ] Support group-level variables or instance-level variables
 - [x] apply: List variables that are defined in GitLab but not locally
 
 ## License
