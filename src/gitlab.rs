@@ -42,7 +42,7 @@ impl Gitlab {
 
     /// List all available project variables
     pub fn list_project_variables(&self, project: &str) -> FetchResult<Vec<Variable>> {
-        let project_id = project.replace("/", "%2F");
+        let project_id = project.replace('/', "%2F");
         let url = self
             .url
             .join(&format!("projects/{project_id}/variables"))
@@ -66,7 +66,7 @@ impl Gitlab {
         project: &str,
         variable: &Variable,
     ) -> FetchResult<Variable> {
-        let project_id = project.replace("/", "%2F");
+        let project_id = project.replace('/', "%2F");
         let url = self
             .url
             .join(&format!("projects/{project_id}/variables"))
@@ -86,7 +86,7 @@ impl Gitlab {
         project: &str,
         variable: &Variable,
     ) -> FetchResult<Variable> {
-        let project_id = project.replace("/", "%2F");
+        let project_id = project.replace('/', "%2F");
         let key = variable.key.as_str();
         let mut url = self
             .url

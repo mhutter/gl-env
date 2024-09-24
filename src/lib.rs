@@ -75,7 +75,7 @@ impl From<VariableKey> for String {
 }
 
 /// The value of a variable.
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VariableValue {
     /// The actual value
     ///
@@ -135,6 +135,8 @@ impl From<gitlab::Variable> for VariableValue {
     }
 }
 
+/// Helper function for Serde's `skip_serializing_if`
+#[allow(clippy::trivially_copy_pass_by_ref)]
 const fn is_false(value: &bool) -> bool {
     !(*value)
 }

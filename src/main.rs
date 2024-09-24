@@ -20,21 +20,21 @@ fn main() {
     match args.command {
         Commands::Diff(args) => {
             let gitlab = Gitlab::from(&args);
-            diff(gitlab, &args.project);
+            diff(&gitlab, &args.project);
         }
         Commands::Dump(args) => {
             let gitlab = Gitlab::from(&args);
-            dump(gitlab, &args.project);
+            dump(&gitlab, &args.project);
         }
         Commands::Apply { args, dry_run } => {
             let gitlab = Gitlab::from(&args);
-            apply(gitlab, &args.project, dry_run);
+            apply(&gitlab, &args.project, dry_run);
         }
     }
 }
 
 /// Apply all variables
-fn apply(gitlab: Gitlab, project: &str, dry_run: bool) {
+fn apply(gitlab: &Gitlab, project: &str, dry_run: bool) {
     if dry_run {
         println!("Running in DRY RUN MODE");
     }
@@ -113,7 +113,7 @@ fn into_variable(key: String, environment_scope: String, value: VariableValue) -
 }
 
 /// Compare the desired to the actual state
-fn diff(gitlab: Gitlab, project: &str) {
+fn diff(gitlab: &Gitlab, project: &str) {
     // Re-encode YAML so we have a canonical representation
     let desired: State = serde_yml::from_reader(stdin()).expect("Read desired state");
     let desired = serde_yml::to_string(&desired).unwrap();
@@ -131,7 +131,7 @@ fn diff(gitlab: Gitlab, project: &str) {
 }
 
 /// Fetch all currently configured variables, and dump them in YAML format to STDOUT
-fn dump(gitlab: Gitlab, project: &str) {
+fn dump(gitlab: &Gitlab, project: &str) {
     let vars = gitlab.list_project_variables(project).unwrap();
     let state = State::from(vars);
     serde_yml::to_writer(stdout(), &state).expect("Serialize data");

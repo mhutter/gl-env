@@ -18,6 +18,7 @@ pub struct Variable {
 impl Variable {
     /// Determines whether two variables are "the same one", meaning their `key` and
     /// `environment_scope` match.
+    #[must_use]
     pub fn is_same(&self, other: &Self) -> bool {
         self.key == other.key && self.environment_scope == other.environment_scope
     }
@@ -39,6 +40,7 @@ pub enum VariableType {
 }
 
 impl VariableType {
+    #[must_use]
     pub fn is_default(&self) -> bool {
         *self == Self::default()
     }
