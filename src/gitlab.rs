@@ -120,9 +120,7 @@ impl Gitlab {
 
     /// Construct the absolute URL for a project variable
     fn url_for_project_variables(&self, project: &str) -> FetchResult<Url> {
-        // technically the whole project ID must be urlencoded, but in practice only the slash
-        // needs replacing
-        let project_id = project.replace('/', "%2F");
+        let project_id = urlencode(project);
         self.url
             .join(&format!("projects/{project_id}/variables"))
             .map_err(FetchError::from)
@@ -130,9 +128,7 @@ impl Gitlab {
 
     /// Construct the absolute URL for a project variable
     fn url_for_project_variable(&self, project: &str, variable: &Variable) -> FetchResult<Url> {
-        // technically the whole project ID must be urlencoded, but in practice only the slash
-        // needs replacing
-        let project_id = project.replace('/', "%2F");
+        let project_id = urlencode(project);
         let key = variable.key.as_str();
         let mut url = self
             .url
@@ -174,5 +170,30 @@ impl From<ureq::Error> for FetchError {
                 Self::HttpStatus { status, body }
             }
         }
+    }
+}
+
+fn urlencode(s: &str) -> String {
+    const RESERVED_CHARS: &[u8; 18] = b"!#$&'()*+,/:;=?@[]";
+    let mut s = s.to_string();
+
+    for c in RESERVED_CHARS {
+        let t = format!("%{:X}", c);
+        s = s.replace(*c as char, &t);
+    }
+    s
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn urlencode_encodes_str() {
+        assert_eq!(urlencode("foo/bar"), "foo%2Fbar");
+        assert_eq!(
+            urlencode("!#$&'()*+,/:;=?@[]"),
+            "%21%23%24%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D"
+        );
     }
 }
