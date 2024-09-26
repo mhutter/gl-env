@@ -1,6 +1,6 @@
 # `gl-env`
 
-Bulk-edit Project-level CI/CD variables in GitLab.
+Bulk-edit Group- and Project-level CI/CD variables in GitLab.
 
 This tools allows you to define your desired variables in a YAML file, and then diff or apply them automatically.
 
@@ -16,7 +16,7 @@ Features
 Start off by dumping existing variables into a YAML-File
 
 ```sh
-gl-env dump mygroup/myproject > myproject.yml
+gl-env dump -p mygroup/myproject > myproject.yml
 ```
 
 Alternatively, create a file from scratch:
@@ -59,6 +59,18 @@ environment:
     MYSERVICE_KEY:
       value: production-environment-api-key
 ```
+
+You can then use the `diff` and `apply` subcommands:
+
+```sh
+gl-env diff -p mygroup/myproject < myproject.yml
+
+# edit myproject.yml
+
+gl-env apply -p mygroup/myproject < myproject.yml
+```
+
+See `gl-env help` to get complete usage information.
 
 ## Backlog
 
