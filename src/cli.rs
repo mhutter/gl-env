@@ -15,6 +15,11 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// List all configured CI/CD variables
+    ///
+    /// Output columns: Key, Environment, Masked, Protected, Raw
+    List(CommonArgs),
+
     /// Show a diff between actual and desired variables
     Diff(CommonArgs),
 

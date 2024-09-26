@@ -12,12 +12,18 @@ use gl_env::{
 const RED: &str = "\x1b[0;31m";
 const GREEN: &str = "\x1b[0;32m";
 const YELLOW: &str = "\x1b[0;33m";
+const BLUE: &str = "\x1b[0;34m";
+const GREY: &str = "\x1b[0;90m";
 const RESET: &str = "\x1b[0m";
 
 fn main() {
     let args = Cli::parse();
 
     match args.command {
+        Commands::List(args) => {
+            let gitlab = Gitlab::from(&args);
+            list(&gitlab, &args.project);
+        }
         Commands::Diff(args) => {
             let gitlab = Gitlab::from(&args);
             diff(&gitlab, &args.project);
@@ -35,6 +41,45 @@ fn main() {
             apply(&gitlab, &args.project, prune, dry_run);
         }
     }
+}
+
+fn list(gitlab: &Gitlab, project: &str) {
+    let mut variables = gitlab.list_project_variables(project).unwrap();
+    if variables.len() < 1 {
+        println!("{GREY}no variables defined{RESET}");
+        return;
+    }
+
+    variables.sort();
+    let key_len = variables.iter().map(|v| v.key.len()).max().unwrap().max(3);
+    let env_len = variables
+        .iter()
+        .map(|v| v.environment_scope.len())
+        .max()
+        .unwrap()
+        .max(3);
+
+    let divider = format!(
+        "+-{}-+-{}-+---+---+---+",
+        "-".repeat(key_len),
+        "-".repeat(env_len)
+    );
+
+    println!(
+        "{}\n| {:key_len$} | {:env_len$} | m | p | r |\n{}",
+        divider, "KEY", "ENV", divider
+    );
+    for v in variables {
+        println!(
+            "| {BLUE}{:key_len$}{RESET} | {:env_len$} | {GREEN}{}{RESET} | {GREEN}{}{RESET} | {GREEN}{}{RESET} |",
+            v.key,
+            v.environment_scope,
+            v.masked.then(|| 'x').unwrap_or_else(|| ' '),
+            v.protected.then(|| 'x').unwrap_or_else(|| ' '),
+            v.raw.then(|| 'x').unwrap_or_else(|| ' '),
+        );
+    }
+    println!("{divider}");
 }
 
 /// Apply all variables
