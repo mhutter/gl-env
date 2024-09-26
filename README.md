@@ -6,10 +6,19 @@ This tools allows you to define your desired variables in a YAML file, and then 
 
 Features
 
+- List variables
 - Dump existing variables to YAML
 - Diff between desired and current values
 - Apply variables from local file
 - Support for different environment scopes
+
+## Installation
+
+```sh
+cargo install gl-env
+```
+
+(OS packages & GitHub releases soon?)
 
 ## Usage
 
