@@ -1,5 +1,6 @@
 [package]
 name = "gl-env"
+description = "Bulk-edit Group- and Project-level CI/CD variables in GitLab."
 version = "0.1.0"
 edition = "2021"
 authors = ["Manuel Hutter (https://github.com/mhutter)"]
