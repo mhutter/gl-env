@@ -41,9 +41,9 @@ impl Gitlab {
         }
     }
 
-    /// List all available project variables
-    pub fn list_project_variables(&self, project: &str) -> FetchResult<Vec<Variable>> {
-        let url = self.url_for_project_variables(project)?;
+    /// List all CI/CD variables for a group or project
+    pub fn list_variables(&self, target: &Target) -> FetchResult<Vec<Variable>> {
+        let url = target.url_for_list(&self.url)?;
         self.get(&url)?.into_json().map_err(FetchError::from)
     }
 
@@ -52,32 +52,25 @@ impl Gitlab {
     /// If a variable with the same key already exists, the new variable must have a different
     /// `environment_scope`. Otherwise, GitLab returns a message similar to: `VARIABLE_NAME has
     /// already been taken`.
-    pub fn create_project_variable(
-        &self,
-        project: &str,
-        variable: &Variable,
-    ) -> FetchResult<Variable> {
-        let url = self.url_for_project_variables(project)?;
+    pub fn create_variable(&self, target: &Target, variable: &Variable) -> FetchResult<Variable> {
+        let url = target.url_for_list(&self.url)?;
         self.post(&url, variable)?
             .into_json()
             .map_err(FetchError::from)
     }
 
-    /// Update a project's variable.
-    pub fn update_project_variable(
-        &self,
-        project: &str,
-        variable: &Variable,
-    ) -> FetchResult<Variable> {
-        let url = self.url_for_project_variable(project, variable)?;
+    /// Update a variable.
+    pub fn update_variable(&self, target: &Target, variable: &Variable) -> FetchResult<Variable> {
+        let url = target.url_for_item(&self.url, variable)?;
+        dbg!(&url.as_str());
         self.put(&url, variable)?
             .into_json()
             .map_err(FetchError::from)
     }
 
-    /// Delete a project's variable
-    pub fn delete_project_variable(&self, project: &str, variable: &Variable) -> FetchResult<()> {
-        let url = self.url_for_project_variable(project, variable)?;
+    /// Delete a variable
+    pub fn delete_variable(&self, target: &Target, variable: &Variable) -> FetchResult<()> {
+        let url = target.url_for_item(&self.url, variable)?;
         self.delete(&url)?;
         Ok(())
     }
@@ -117,26 +110,6 @@ impl Gitlab {
             .call()
             .map_err(FetchError::from)
     }
-
-    /// Construct the absolute URL for a project variable
-    fn url_for_project_variables(&self, project: &str) -> FetchResult<Url> {
-        let project_id = urlencode(project);
-        self.url
-            .join(&format!("projects/{project_id}/variables"))
-            .map_err(FetchError::from)
-    }
-
-    /// Construct the absolute URL for a project variable
-    fn url_for_project_variable(&self, project: &str, variable: &Variable) -> FetchResult<Url> {
-        let project_id = urlencode(project);
-        let key = variable.key.as_str();
-        let mut url = self
-            .url
-            .join(&format!("projects/{project_id}/variables/{key}"))?;
-        url.query_pairs_mut()
-            .append_pair("filter[environment_scope]", &variable.environment_scope);
-        Ok(url)
-    }
 }
 
 impl From<&CommonArgs> for Gitlab {
@@ -169,6 +142,42 @@ impl From<ureq::Error> for FetchError {
                 let body = res.into_string().unwrap_or_default();
                 Self::HttpStatus { status, body }
             }
+        }
+    }
+}
+
+/// Either a Group or a Project
+pub enum Target {
+    Project(String),
+    Group(String),
+}
+
+impl Target {
+    pub fn url_for_list(&self, base: &Url) -> FetchResult<Url> {
+        let (kind, target_id) = match self {
+            Target::Project(p) => ("project", urlencode(p)),
+            Target::Group(g) => ("group", urlencode(g)),
+        };
+
+        base.join(&format!("{kind}s/{target_id}/variables"))
+            .map_err(FetchError::from)
+    }
+
+    pub fn url_for_item(&self, base: &Url, variable: &Variable) -> FetchResult<Url> {
+        let key = variable.key.as_str();
+        let mut url = self.url_for_list(base)?.join(&format!("variables/{key}"))?;
+        url.query_pairs_mut()
+            .append_pair("filter[environment_scope]", &variable.environment_scope);
+        Ok(url)
+    }
+}
+
+impl From<&CommonArgs> for Target {
+    fn from(args: &CommonArgs) -> Self {
+        match (args.group.clone(), args.project.clone()) {
+            (Some(v), None) => return Self::Group(v),
+            (None, Some(v)) => return Self::Project(v),
+            _ => panic!("either -g/--group or -p/--project must be passed"),
         }
     }
 }

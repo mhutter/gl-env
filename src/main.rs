@@ -5,7 +5,7 @@ use std::io::{stdin, stdout};
 use clap::Parser;
 use gl_env::{
     cli::{Cli, Commands},
-    gitlab::{Gitlab, Variable},
+    gitlab::{Gitlab, Target, Variable},
     State,
 };
 
@@ -22,15 +22,18 @@ fn main() {
     match args.command {
         Commands::List(args) => {
             let gitlab = Gitlab::from(&args);
-            list(&gitlab, &args.project);
+            let t = Target::from(&args);
+            list(&gitlab, t);
         }
         Commands::Diff(args) => {
             let gitlab = Gitlab::from(&args);
-            diff(&gitlab, &args.project);
+            let t = Target::from(&args);
+            diff(&gitlab, t);
         }
         Commands::Dump(args) => {
             let gitlab = Gitlab::from(&args);
-            dump(&gitlab, &args.project);
+            let t = Target::from(&args);
+            dump(&gitlab, t);
         }
         Commands::Apply {
             args,
@@ -38,13 +41,14 @@ fn main() {
             prune,
         } => {
             let gitlab = Gitlab::from(&args);
-            apply(&gitlab, &args.project, prune, dry_run);
+            let t = Target::from(&args);
+            apply(&gitlab, t, prune, dry_run);
         }
     }
 }
 
-fn list(gitlab: &Gitlab, project: &str) {
-    let mut variables = gitlab.list_project_variables(project).unwrap();
+fn list(gitlab: &Gitlab, target: Target) {
+    let mut variables = gitlab.list_variables(&target).unwrap();
     if variables.len() < 1 {
         println!("{GREY}no variables defined{RESET}");
         return;
@@ -83,7 +87,7 @@ fn list(gitlab: &Gitlab, project: &str) {
 }
 
 /// Apply all variables
-fn apply(gitlab: &Gitlab, project: &str, prune: bool, dry_run: bool) {
+fn apply(gitlab: &Gitlab, target: Target, prune: bool, dry_run: bool) {
     if dry_run {
         println!("Running in DRY RUN MODE");
     }
@@ -92,7 +96,7 @@ fn apply(gitlab: &Gitlab, project: &str, prune: bool, dry_run: bool) {
     let desired: Vec<Variable> = desired.into();
 
     // Load actual state
-    let mut actual = gitlab.list_project_variables(project).unwrap();
+    let mut actual = gitlab.list_variables(&target).unwrap();
     // NOTE: This introduces a "time-of-check to time-of-use" situation; however at this point it
     // seems a bit too extreme to implement a locking mechanism (which would probably be relatively
     // easy to implement using a special variable).
@@ -108,13 +112,13 @@ fn apply(gitlab: &Gitlab, project: &str, prune: bool, dry_run: bool) {
             Some(v) if v == variable => println!("{variable} no change needed"),
             Some(_) => {
                 if !dry_run {
-                    gitlab.update_project_variable(project, &variable).unwrap();
+                    gitlab.update_variable(&target, &variable).unwrap();
                 }
                 println!("{YELLOW}{variable} updated{RESET}");
             }
             None => {
                 if !dry_run {
-                    gitlab.create_project_variable(project, &variable).unwrap();
+                    gitlab.create_variable(&target, &variable).unwrap();
                 }
                 println!("{GREEN}{variable} created{RESET}");
             }
@@ -123,7 +127,7 @@ fn apply(gitlab: &Gitlab, project: &str, prune: bool, dry_run: bool) {
 
     if prune {
         for variable in actual {
-            gitlab.delete_project_variable(project, &variable).unwrap();
+            gitlab.delete_variable(&target, &variable).unwrap();
             println!("{RED}{variable} deleted{RESET}");
         }
     } else {
@@ -134,7 +138,7 @@ fn apply(gitlab: &Gitlab, project: &str, prune: bool, dry_run: bool) {
 }
 
 /// Compare the desired to the actual state
-fn diff(gitlab: &Gitlab, project: &str) {
+fn diff(gitlab: &Gitlab, target: Target) {
     // Re-encode YAML so we have a canonical representation
     let desired: State = serde_yml::from_reader(stdin()).expect("Read desired state");
     let desired: Vec<Variable> = desired.into();
@@ -142,7 +146,7 @@ fn diff(gitlab: &Gitlab, project: &str) {
 
     // Load actual variables, and translate to `State` and back to ensure both lists are sorted
     // identically
-    let actual: State = gitlab.list_project_variables(project).unwrap().into();
+    let actual: State = gitlab.list_variables(&target).unwrap().into();
     let actual: Vec<Variable> = actual.into();
     let actual = serde_yml::to_string(&actual).unwrap();
 
@@ -156,8 +160,8 @@ fn diff(gitlab: &Gitlab, project: &str) {
 }
 
 /// Fetch all currently configured variables, and dump them in YAML format to STDOUT
-fn dump(gitlab: &Gitlab, project: &str) {
-    let vars = gitlab.list_project_variables(project).unwrap();
+fn dump(gitlab: &Gitlab, target: Target) {
+    let vars = gitlab.list_variables(&target).unwrap();
     let state = State::from(vars);
     serde_yml::to_writer(stdout(), &state).expect("Serialize data");
 }

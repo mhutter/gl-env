@@ -36,7 +36,7 @@ pub enum Commands {
         dry_run: bool,
 
         /// Remove variables not present in desired state
-        #[arg(short, long)]
+        #[arg(long)]
         prune: bool,
     },
 }
@@ -61,5 +61,10 @@ pub struct CommonArgs {
     pub token: String,
 
     /// Path/ID of the project (either `mygroup/myproject` or numeric Project ID).
-    pub project: String,
+    #[arg(short, long)]
+    pub project: Option<String>,
+
+    /// Path/ID of the group (either `mygroup` or numeric Group ID).
+    #[arg(short, long)]
+    pub group: Option<String>,
 }

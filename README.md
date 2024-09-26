@@ -62,7 +62,7 @@ environment:
 
 ## Backlog
 
-- [ ] Support group-level variables or instance-level variables
+- [x] Support group-level variables or instance-level variables
 - [ ] Non-ugly error messages
 - [ ] String-or-struct for variables (?)
 - [x] Remove obsolete variables
