@@ -5,12 +5,32 @@
 use clap::{Args, Parser, Subcommand};
 use url::Url;
 
+use crate::gitlab::{Gitlab, Target};
+
 /// Tools to bulk-edit Project-level CI/CD variables in GitLab.
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
+
+    /// Path/ID of the project (either `mygroup/myproject` or numeric Project ID).
+    #[arg(short, long, global = true)]
+    pub project: Option<String>,
+
+    /// Path/ID of the group (either `mygroup` or numeric Group ID).
+    #[arg(short, long, global = true)]
+    pub group: Option<String>,
+}
+
+impl From<&Cli> for Target {
+    fn from(args: &Cli) -> Self {
+        match (args.group.clone(), args.project.clone()) {
+            (Some(v), None) => return Self::Group(v),
+            (None, Some(v)) => return Self::Project(v),
+            _ => panic!("either -g/--group or -p/--project must be passed"),
+        }
+    }
 }
 
 #[derive(Subcommand)]
@@ -59,12 +79,10 @@ pub struct CommonArgs {
     /// Required scopes: `api`.
     #[arg(short, long, env = "GITLAB_TOKEN", hide_env_values = true)]
     pub token: String,
+}
 
-    /// Path/ID of the project (either `mygroup/myproject` or numeric Project ID).
-    #[arg(short, long)]
-    pub project: Option<String>,
-
-    /// Path/ID of the group (either `mygroup` or numeric Group ID).
-    #[arg(short, long)]
-    pub group: Option<String>,
+impl From<&CommonArgs> for Gitlab {
+    fn from(args: &CommonArgs) -> Self {
+        Self::new(&args.url, &args.token)
+    }
 }

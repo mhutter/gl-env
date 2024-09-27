@@ -5,7 +5,7 @@ use std::{io, time::Duration};
 use serde::Serialize;
 use url::Url;
 
-use crate::{cli::CommonArgs, APP_UA};
+use crate::APP_UA;
 
 mod models;
 pub use models::*;
@@ -112,12 +112,6 @@ impl Gitlab {
     }
 }
 
-impl From<&CommonArgs> for Gitlab {
-    fn from(args: &CommonArgs) -> Self {
-        Self::new(&args.url, &args.token)
-    }
-}
-
 /// Errors that might occur when performing requests to the GitLab API.
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
@@ -169,16 +163,6 @@ impl Target {
         url.query_pairs_mut()
             .append_pair("filter[environment_scope]", &variable.environment_scope);
         Ok(url)
-    }
-}
-
-impl From<&CommonArgs> for Target {
-    fn from(args: &CommonArgs) -> Self {
-        match (args.group.clone(), args.project.clone()) {
-            (Some(v), None) => return Self::Group(v),
-            (None, Some(v)) => return Self::Project(v),
-            _ => panic!("either -g/--group or -p/--project must be passed"),
-        }
     }
 }
 

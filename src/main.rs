@@ -17,23 +17,21 @@ const GREY: &str = "\x1b[0;90m";
 const RESET: &str = "\x1b[0m";
 
 fn main() {
-    let args = Cli::parse();
+    let cli = Cli::parse();
+    let target = Target::from(&cli);
 
-    match args.command {
+    match cli.command {
         Commands::List(args) => {
             let gitlab = Gitlab::from(&args);
-            let t = Target::from(&args);
-            list(&gitlab, t);
+            list(&gitlab, target);
         }
         Commands::Diff(args) => {
             let gitlab = Gitlab::from(&args);
-            let t = Target::from(&args);
-            diff(&gitlab, t);
+            diff(&gitlab, target);
         }
         Commands::Dump(args) => {
             let gitlab = Gitlab::from(&args);
-            let t = Target::from(&args);
-            dump(&gitlab, t);
+            dump(&gitlab, target);
         }
         Commands::Apply {
             args,
@@ -41,8 +39,7 @@ fn main() {
             prune,
         } => {
             let gitlab = Gitlab::from(&args);
-            let t = Target::from(&args);
-            apply(&gitlab, t, prune, dry_run);
+            apply(&gitlab, target, prune, dry_run);
         }
     }
 }
