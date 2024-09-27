@@ -46,7 +46,7 @@ fn main() {
 
 fn list(gitlab: &Gitlab, target: Target) {
     let mut variables = gitlab.list_variables(&target).unwrap();
-    if variables.len() < 1 {
+    if variables.is_empty() {
         println!("{GREY}no variables defined{RESET}");
         return;
     }
@@ -75,9 +75,9 @@ fn list(gitlab: &Gitlab, target: Target) {
             "| {BLUE}{:key_len$}{RESET} | {:env_len$} | {GREEN}{}{RESET} | {GREEN}{}{RESET} | {GREEN}{}{RESET} |",
             v.key,
             v.environment_scope,
-            v.masked.then(|| 'x').unwrap_or_else(|| ' '),
-            v.protected.then(|| 'x').unwrap_or_else(|| ' '),
-            v.raw.then(|| 'x').unwrap_or_else(|| ' '),
+            if v.masked { 'x' } else { ' ' },
+            if v.protected { 'x' } else { ' ' },
+            if v.raw { 'x' } else { ' ' },
         );
     }
     println!("{divider}");

@@ -26,8 +26,8 @@ pub struct Cli {
 impl From<&Cli> for Target {
     fn from(args: &Cli) -> Self {
         match (args.group.clone(), args.project.clone()) {
-            (Some(v), None) => return Self::Group(v),
-            (None, Some(v)) => return Self::Project(v),
+            (Some(v), None) => Self::Group(v),
+            (None, Some(v)) => Self::Project(v),
             _ => panic!("either -g/--group or -p/--project must be passed"),
         }
     }
