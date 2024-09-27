@@ -3,11 +3,27 @@
 use std::io::{stdin, stdout};
 
 use clap::Parser;
-use gl_env::{
-    cli::{Cli, Commands},
-    gitlab::{Gitlab, Target, Variable},
-    State,
-};
+
+use cli::{Cli, Commands};
+use gitlab::{Gitlab, Target, Variable};
+use state::State;
+
+pub mod cli;
+pub mod gitlab;
+pub mod state;
+
+/// Name & version of the application
+pub const APP: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
+/// Name, version & repository URL of the app
+pub const APP_UA: &str = concat!(
+    env!("CARGO_PKG_NAME"),
+    "/",
+    env!("CARGO_PKG_VERSION"),
+    " (",
+    env!("CARGO_PKG_REPOSITORY"),
+    ")",
+);
 
 const RED: &str = "\x1b[0;31m";
 const GREEN: &str = "\x1b[0;32m";

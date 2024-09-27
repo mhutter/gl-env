@@ -1,26 +1,8 @@
-#![forbid(unsafe_code)]
-
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use gitlab::{Variable, VariableType};
-
-pub mod cli;
-pub mod gitlab;
-
-/// Name & version of the application
-pub const APP: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
-
-/// Name, version & repository URL of the app
-pub const APP_UA: &str = concat!(
-    env!("CARGO_PKG_NAME"),
-    "/",
-    env!("CARGO_PKG_VERSION"),
-    " (",
-    env!("CARGO_PKG_REPOSITORY"),
-    ")",
-);
+use crate::gitlab;
 
 /// A map of variables, indexed by their key.
 ///
@@ -43,7 +25,7 @@ pub struct State {
     pub environments: BTreeMap<String, Variables>,
 }
 
-/// Variable settings
+/// gitlab::Variable settings
 #[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Settings {
     /// Whether the value should be filtered in job logs.
@@ -59,7 +41,7 @@ pub struct Settings {
     pub raw: Option<bool>,
 }
 
-impl From<State> for Vec<Variable> {
+impl From<State> for Vec<gitlab::Variable> {
     fn from(state: State) -> Self {
         let mut variables = Vec::new();
 
@@ -104,7 +86,7 @@ fn into_variable(
     environment_scope: String,
     value: VariableValue,
     defaults: &Settings,
-) -> Variable {
+) -> gitlab::Variable {
     let VariableValue {
         value,
         description,
@@ -121,7 +103,7 @@ fn into_variable(
     let protected = protected.unwrap_or(defaults.protected.unwrap_or(false));
     let raw = raw.unwrap_or(defaults.raw.unwrap_or(false));
 
-    Variable {
+    gitlab::Variable {
         key,
         value,
         description,
@@ -169,9 +151,9 @@ pub struct VariableValue {
     #[serde(
         rename = "type",
         default,
-        skip_serializing_if = "VariableType::is_default"
+        skip_serializing_if = "gitlab::VariableType::is_default"
     )]
-    pub variable_type: VariableType,
+    pub variable_type: gitlab::VariableType,
 
     #[serde(flatten)]
     pub settings: Settings,
