@@ -11,7 +11,7 @@ repository = "https://github.com/mhutter/gl-env"
 clap = { version = "4.5.18", features = ["derive", "env"] }
 diff = "0.1.13"
 serde = { version = "1.0.210", features = ["derive"] }
-serde_yml = "0.0.12"
+serde_yml = "0.0.13"
 thiserror = "2.0.0"
 ureq = { version = "2.10.1", features = ["json"] }
 url = "2.5.2"
